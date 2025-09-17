@@ -1,0 +1,8 @@
+docker-compose down
+docker-compose up --build
+
+# Remove the volume of DB if needed
+docker volume rm quizlet_postgres_data
+
+Quizlet is here:
+http://localhost:3000

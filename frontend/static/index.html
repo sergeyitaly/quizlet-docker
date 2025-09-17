@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quizlet Learning Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Quizlet Learning Platform</h1>
+            <div id="progress-display"></div>
+            <button id="view-history">View Quiz History</button>
+        </header>
+
+        <main>
+            <div class="category-selector">
+                <h2>Select Categories</h2>
+                <p>Select one or more categories for your quiz</p>
+                <div id="categories-list"></div>
+                
+                <div class="quiz-config">
+                    <h3>Quiz Configuration</h3>
+                    <div class="config-control">
+                        <label for="question-count">Number of Questions (default: 10):</label>
+                        <input type="number" id="question-count" min="1" max="50" value="10">
+                    </div>
+                    <button id="start-quiz" disabled>Start Quiz</button>
+                </div>
+            </div>
+
+            <div class="quiz-container" style="display: none;">
+                <h2 id="quiz-title"></h2>
+                <div class="selected-categories" id="selected-categories"></div>
+                
+                <div class="question-counter" id="question-counter"></div>
+                <div id="current-question"></div>
+                
+                <div class="quiz-nav">
+                    <button id="prev-question">Previous</button>
+                    <button id="next-question">Next</button>
+                </div>
+                
+                <button id="submit-quiz">Submit Quiz</button>
+            </div>
+
+            <div class="results-container" style="display: none;">
+                <h2>Quiz Results</h2>
+                <div id="results-details"></div>
+                <button id="back-to-categories">Back to Categories</button>
+            </div>
+
+            <div class="quiz-history-container" style="display: none;">
+                <div class="history-header">
+                    <h2>Quiz History</h2>
+                    <button id="back-to-categories-from-history">Back to Categories</button>
+                </div>
+                
+                <div class="progress-cards">
+                    <div class="progress-card overall-progress">
+                        <h3>Overall Progress</h3>
+                        <div class="progress-stats">
+                            <div class="stat">
+                                <span class="stat-value" id="total-quizzes">0</span>
+                                <span class="stat-label">Total Quizzes</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value" id="avg-score">0%</span>
+                                <span class="stat-label">Average Score</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value" id="total-questions">0</span>
+                                <span class="stat-label">Questions Answered</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-card category-breakdown">
+                        <h3>Category Breakdown</h3>
+                        <div id="category-stats"></div>
+                    </div>
+                </div>
+                
+                <div class="history-content">
+                    <div id="quiz-history"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/quiz.js"></script>
+    <script src="js/progress.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/results.js"></script>
+</body>
+</html>
