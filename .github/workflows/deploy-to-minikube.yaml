@@ -57,10 +57,16 @@ jobs:
     - name: Deploy frontend
       run: kubectl apply -f k8s/frontend-deployment.yaml
 
+    - name: Check backend status
+      run: |
+        kubectl describe deployment/quizlet-backend
+        kubectl get pods -l app=quizlet-backend
+        kubectl logs -l app=quizlet-backend --tail=50
+
     - name: Wait for deployments
       run: |
-        kubectl wait --for=condition=available deployment/quizlet-backend --timeout=120s
-        kubectl wait --for=condition=available deployment/quizlet-frontend --timeout=120s
+        kubectl wait --for=condition=available deployment/quizlet-backend --timeout=300s
+        kubectl wait --for=condition=available deployment/quizlet-frontend --timeout=300s
 
     # Install ingress controller for KinD
     - name: Install Ingress Controller
