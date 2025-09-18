@@ -3,26 +3,70 @@ name: Deploy to Minikube using GitHub Actions
 on: [push]
   
 jobs:
-  job1:
+  deploy:
     runs-on: ubuntu-latest
-    name: build Node.js Docker Image and deploy to minikube
+    name: Build and deploy Quizlet app to Minikube
     steps:
-    - uses: actions/checkout@v2
-    - name: Start minikube
+    - uses: actions/checkout@v3
+    
+    - name: Start Minikube
       uses: medyagh/setup-minikube@master
-    - name: Try the cluster !
+      with:
+        minikube version: 'v1.31.2'
+        kubernetes version: 'v1.27.4'
+        github token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Verify cluster
       run: kubectl get pods -A
-    - name: Build image
+      
+    - name: Build backend image
       run: |
-          export SHELL=/bin/bash
-          eval $(minikube -p minikube docker-env)
-          docker build -f ./Dockerfile -t devopshint/node-app:latest .
-          echo -n "verifying images:"
-          docker images         
-    - name: Deploy to minikube
-      run:
-        kubectl apply -f k8s-node-app.yaml
-    - name: Test service URLs
+        eval $(minikube -p minikube docker-env)
+        docker build -f ./backend/Dockerfile -t quizlet-backend:latest ./backend
+        
+    - name: Build frontend image
       run: |
-          minikube service list
-          minikube service nodejs-app --url
+        eval $(minikube -p minikube docker-env)
+        docker build -f ./frontend/Dockerfile -t quizlet-frontend:latest ./frontend
+        
+    - name: Verify images
+      run: |
+        eval $(minikube -p minikube docker-env)
+        docker images | grep quizlet
+        
+    - name: Deploy PostgreSQL
+      run: kubectl apply -f k8s/postgres-deployment.yaml
+      
+    - name: Wait for PostgreSQL
+      run: |
+        kubectl wait --for=condition=ready pod -l app=quizlet-postgres --timeout=120s
+        
+    - name: Initialize database
+      run: |
+        # Wait a bit more for PostgreSQL to be fully ready
+        sleep 10
+        # You might want to run your database initialization script here
+        # kubectl exec -it deployment/quizlet-postgres -- psql -U quizuser -d quizdb -f /docker-entrypoint-initdb.d/init_db.sql
+        
+    - name: Deploy backend
+      run: kubectl apply -f k8s/backend-deployment.yaml
+      
+    - name: Deploy frontend
+      run: kubectl apply -f k8s/frontend-deployment.yaml
+      
+    - name: Wait for deployments
+      run: |
+        kubectl wait --for=condition=available deployment/quizlet-backend --timeout=120s
+        kubectl wait --for=condition=available deployment/quizlet-frontend --timeout=120s
+        
+    - name: Test services
+      run: |
+        echo "Backend service:"
+        minikube service quizlet-backend --url
+        echo "Frontend service:"
+        minikube service quizlet-frontend --url
+        
+    - name: Show status
+      run: |
+        kubectl get all
+        minikube service list

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quizlet-postgres
+  labels:
+    app: quizlet-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quizlet-postgres
+  template:
+    metadata:
+      labels:
+        app: quizlet-postgres
+    spec:
+      containers:
+      - name: quizlet-postgres
+        image: postgres:13
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "quizdb"
+        - name: POSTGRES_USER
+          value: "quizuser"
+        - name: POSTGRES_PASSWORD
+          value: "quizpass"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quizlet-postgres
+spec:
+  selector:
+    app: quizlet-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
