@@ -1,42 +1,44 @@
 name: Deploy to Kubernetes using GitHub Actions
 
 on: [push]
-  
+
 jobs:
   deploy:
-    runs-on: ubuntu-22.04  # Use supported Ubuntu version
+    runs-on: ubuntu-22.04
     name: Build and deploy Quizlet app
     steps:
     - uses: actions/checkout@v3
-    
+
+    # Setup KinD cluster
     - name: Setup Kind
-      uses: engineerd/setup-kind@v0.6.0
+      uses: helm/kind-action@v1.8.0
       with:
-        version: "v0.22.0"
-        
-    - name: Create cluster
-      run: kind create cluster --name quizlet-cluster
-      
+        version: v0.22.0
+        cluster_name: quizlet-cluster
+
+    # Build and load backend image into cluster
     - name: Build backend image
       run: |
         docker build -f ./backend/Dockerfile -t quizlet-backend:latest ./backend
         kind load docker-image quizlet-backend:latest --name quizlet-cluster
-        
+
+    # Build and load frontend image into cluster
     - name: Build frontend image
       run: |
         docker build -f ./frontend/Dockerfile -t quizlet-frontend:latest ./frontend
         kind load docker-image quizlet-frontend:latest --name quizlet-cluster
-        
+
     - name: Verify images
       run: docker images | grep quizlet
-        
+
+    # Deploy PostgreSQL
     - name: Deploy PostgreSQL
       run: kubectl apply -f k8s/postgres-deployment.yaml
-      
+
     - name: Wait for PostgreSQL
       run: |
         kubectl wait --for=condition=ready pod -l app=quizlet-postgres --timeout=120s
-        
+
     - name: Initialize database
       run: |
         sleep 20
@@ -47,18 +49,29 @@ jobs:
         else
           echo "No init_db.sql found, skipping database initialization"
         fi
-        
+
+    # Deploy backend & frontend
     - name: Deploy backend
       run: kubectl apply -f k8s/backend-deployment.yaml
-      
+
     - name: Deploy frontend
       run: kubectl apply -f k8s/frontend-deployment.yaml
-      
+
     - name: Wait for deployments
       run: |
         kubectl wait --for=condition=available deployment/quizlet-backend --timeout=120s
         kubectl wait --for=condition=available deployment/quizlet-frontend --timeout=120s
-        
+
+    # Install ingress controller for KinD
+    - name: Install Ingress Controller
+      run: |
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/kind/deploy.yaml
+        kubectl wait --namespace ingress-nginx \
+          --for=condition=ready pod \
+          --selector=app.kubernetes.io/component=controller \
+          --timeout=180s
+
+    # Create ingress resource
     - name: Create ingress for frontend access
       run: |
         cat <<EOF | kubectl apply -f -
@@ -78,7 +91,7 @@ jobs:
                     port:
                       number: 80
         EOF
-        
+
     - name: Show status
       run: |
         kubectl get all
