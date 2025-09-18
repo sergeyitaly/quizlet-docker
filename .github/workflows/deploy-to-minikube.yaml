@@ -95,14 +95,12 @@ jobs:
         kubectl wait --for=condition=available deployment/quizlet-backend --timeout=60s
         kubectl wait --for=condition=available deployment/quizlet-frontend --timeout=60s
 
-    # Install ingress controller for KinD
-    - name: Install Ingress Controller
+    - name: Install simpler ingress
       run: |
-        kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/kind/deploy.yaml
-        kubectl wait --namespace ingress-nginx \
-          --for=condition=ready pod \
-          --selector=app.kubernetes.io/component=controller \
-          --timeout=180s
+        # Alternative: Use KinD's built-in ingress
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+        sleep 30 
+        
 
     # Create ingress resource
     - name: Create ingress for frontend access
