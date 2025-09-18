@@ -17,19 +17,22 @@ spec:
       containers:
       - name: quizlet-backend
         image: quizlet-backend:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8000
         env:
         - name: DATABASE_URL
           value: "postgresql://quizuser:quizpass@quizlet-postgres:5432/quizdb"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: quizlet-backend
-spec:
-  selector:
-    app: quizlet-backend
-  ports:
-  - port: 8000
-    targetPort: 8000
+        # Add readiness and liveness probes
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 10
