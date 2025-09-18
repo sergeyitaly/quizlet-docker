@@ -9,29 +9,36 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
+    - name: Install Minikube
+      run: |
+        curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        sudo install minikube-linux-amd64 /usr/local/bin/minikube
+        
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+        
     - name: Start Minikube
-      uses: medyagh/setup-minikube@master
-      with:
-        minikube version: 'v1.31.2'
-        kubernetes version: 'v1.27.4'
-        github token: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        sudo minikube start --driver=docker --kubernetes-version=v1.27.4
         
     - name: Verify cluster
       run: kubectl get pods -A
       
     - name: Build backend image
       run: |
-        eval $(minikube -p minikube docker-env)
+        eval $(sudo minikube docker-env)
         docker build -f ./backend/Dockerfile -t quizlet-backend:latest ./backend
         
     - name: Build frontend image
       run: |
-        eval $(minikube -p minikube docker-env)
+        eval $(sudo minikube docker-env)
         docker build -f ./frontend/Dockerfile -t quizlet-frontend:latest ./frontend
         
     - name: Verify images
       run: |
-        eval $(minikube -p minikube docker-env)
+        eval $(sudo minikube docker-env)
         docker images | grep quizlet
         
     - name: Deploy PostgreSQL
@@ -44,9 +51,10 @@ jobs:
     - name: Initialize database
       run: |
         # Wait a bit more for PostgreSQL to be fully ready
-        sleep 10
-        # You might want to run your database initialization script here
-        # kubectl exec -it deployment/quizlet-postgres -- psql -U quizuser -d quizdb -f /docker-entrypoint-initdb.d/init_db.sql
+        sleep 20
+        # Copy and execute the init script
+        kubectl cp init_db.sql quizlet-postgres-$(kubectl get pods -l app=quizlet-postgres -o jsonpath='{.items[0].metadata.name}'):/tmp/init_db.sql
+        kubectl exec deployment/quizlet-postgres -- psql -U quizuser -d quizdb -f /tmp/init_db.sql
         
     - name: Deploy backend
       run: kubectl apply -f k8s/backend-deployment.yaml
