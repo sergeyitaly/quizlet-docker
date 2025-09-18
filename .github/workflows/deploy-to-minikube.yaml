@@ -21,7 +21,7 @@ jobs:
         
     - name: Start Minikube
       run: |
-        sudo minikube start --driver=docker --kubernetes-version=v1.27.4
+        sudo minikube start --driver=docker --kubernetes-version=v1.34.0
         
     - name: Verify cluster
       run: kubectl get pods -A
