@@ -9,6 +9,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y conntrack
+        
     - name: Install Minikube
       run: |
         curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
@@ -19,35 +24,41 @@ jobs:
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
         sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
         
-    - name: Start Minikube with proper driver
+    - name: Start Minikube with docker driver
       run: |
-        # Use none driver to avoid root privilege issues with docker driver
-        sudo minikube start --driver=none --kubernetes-version=v1.28.0
+        # Create minikube user to avoid root issues with docker driver
+        sudo useradd -m -s /bin/bash minikube || true
+        sudo usermod -aG docker minikube || true
         
-    - name: Verify cluster
-      run: kubectl get pods -A
-      
+        # Switch to minikube user and start minikube
+        sudo -u minikube minikube start --driver=docker --kubernetes-version=v1.28.0
+        
+    - name: Set kubectl context
+      run: |
+        sudo -u minikube minikube kubectl -- get pods -A
+        
     - name: Build backend image
       run: |
-        eval $(minikube -p minikube docker-env)
+        eval $(sudo -u minikube minikube docker-env)
         docker build -f ./backend/Dockerfile -t quizlet-backend:latest ./backend
         
     - name: Build frontend image
       run: |
-        eval $(minikube -p minikube docker-env)
+        eval $(sudo -u minikube minikube docker-env)
         docker build -f ./frontend/Dockerfile -t quizlet-frontend:latest ./frontend
         
     - name: Verify images
       run: |
-        eval $(minikube -p minikube docker-env)
+        eval $(sudo -u minikube minikube docker-env)
         docker images | grep quizlet
         
     - name: Deploy PostgreSQL
-      run: kubectl apply -f k8s/postgres-deployment.yaml
-      
+      run: |
+        sudo -u minikube minikube kubectl -- apply -f k8s/postgres-deployment.yaml
+        
     - name: Wait for PostgreSQL
       run: |
-        kubectl wait --for=condition=ready pod -l app=quizlet-postgres --timeout=120s
+        sudo -u minikube minikube kubectl -- wait --for=condition=ready pod -l app=quizlet-postgres --timeout=120s
         
     - name: Initialize database
       run: |
@@ -56,31 +67,33 @@ jobs:
         # Check if init script exists and execute it
         if [ -f "./backend/init_db.sql" ]; then
           echo "Initializing database with init script..."
-          kubectl cp ./backend/init_db.sql quizlet-postgres-$(kubectl get pods -l app=quizlet-postgres -o jsonpath='{.items[0].metadata.name}'):/tmp/init_db.sql
-          kubectl exec deployment/quizlet-postgres -- psql -U quizuser -d quizdb -f /tmp/init_db.sql
+          sudo -u minikube minikube kubectl -- cp ./backend/init_db.sql quizlet-postgres-$(sudo -u minikube minikube kubectl -- get pods -l app=quizlet-postgres -o jsonpath='{.items[0].metadata.name}'):/tmp/init_db.sql
+          sudo -u minikube minikube kubectl -- exec deployment/quizlet-postgres -- psql -U quizuser -d quizdb -f /tmp/init_db.sql
         else
           echo "No init_db.sql found, skipping database initialization"
         fi
         
     - name: Deploy backend
-      run: kubectl apply -f k8s/backend-deployment.yaml
-      
+      run: |
+        sudo -u minikube minikube kubectl -- apply -f k8s/backend-deployment.yaml
+        
     - name: Deploy frontend
-      run: kubectl apply -f k8s/frontend-deployment.yaml
-      
+      run: |
+        sudo -u minikube minikube kubectl -- apply -f k8s/frontend-deployment.yaml
+        
     - name: Wait for deployments
       run: |
-        kubectl wait --for=condition=available deployment/quizlet-backend --timeout=120s
-        kubectl wait --for=condition=available deployment/quizlet-frontend --timeout=120s
+        sudo -u minikube minikube kubectl -- wait --for=condition=available deployment/quizlet-backend --timeout=120s
+        sudo -u minikube minikube kubectl -- wait --for=condition=available deployment/quizlet-frontend --timeout=120s
         
     - name: Test services
       run: |
         echo "Backend service:"
-        minikube service quizlet-backend --url || true
+        sudo -u minikube minikube service quizlet-backend --url || true
         echo "Frontend service:"
-        minikube service quizlet-frontend --url || true
+        sudo -u minikube minikube service quizlet-frontend --url || true
         
     - name: Show status
       run: |
-        kubectl get all
-        minikube service list
+        sudo -u minikube minikube kubectl -- get all
+        sudo -u minikube minikube service list
