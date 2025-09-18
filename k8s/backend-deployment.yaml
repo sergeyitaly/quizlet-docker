@@ -23,16 +23,14 @@ spec:
         env:
         - name: DATABASE_URL
           value: "postgresql://quizuser:quizpass@quizlet-postgres:5432/quizdb"
-        # Add readiness and liveness probes
+        # TCP socket probes - no health endpoint needed
         readinessProbe:
-          httpGet:
-            path: /health
+          tcpSocket:
             port: 8000
-          initialDelaySeconds: 15
+          initialDelaySeconds: 10
           periodSeconds: 5
         livenessProbe:
-          httpGet:
-            path: /health
+          tcpSocket:
             port: 8000
-          initialDelaySeconds: 20
+          initialDelaySeconds: 15
           periodSeconds: 10
