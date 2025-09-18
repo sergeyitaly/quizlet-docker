@@ -73,6 +73,17 @@ jobs:
     - name: Deploy frontend
       run: kubectl apply -f k8s/frontend-deployment.yaml
 
+    - name: Debug frontend issues
+      run: |
+            echo "=== Frontend pod status ==="
+            kubectl get pods -l app=quizlet-frontend -o wide
+            echo "=== Frontend pod details ==="
+            kubectl describe pod -l app=quizlet-frontend
+            echo "=== Frontend logs ==="
+            kubectl logs -l app=quizlet-frontend --tail=50 || echo "No logs available yet"
+            echo "=== Frontend events ==="
+            kubectl get events --field-selector involvedObject.kind=Pod --sort-by='.lastTimestamp' | grep frontend
+            
     - name: Check backend status
       run: |
         kubectl describe deployment/quizlet-backend

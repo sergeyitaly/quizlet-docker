@@ -17,6 +17,8 @@ spec:
       containers:
       - name: quizlet-frontend
         image: quizlet-frontend:latest
+        imagePullPolicy: Never
+
         ports:
         - containerPort: 80
 ---
