@@ -10,3 +10,29 @@ docker volume rm quizlet_postgres_data
 
 Quizlet is here:
 http://localhost:3000
+
+
+
+
+
+# Quizlet App
+
+![Kubernetes](https://img.shields.io/badge/Platform-Kubernetes-326CE5?logo=kubernetes)
+![Kind](https://img.shields.io/badge/Tested%20with-KinD-326CE5?logo=kubernetes)
+![CI/CD](https://img.shields.io/badge/CI/CD-GitHub%20Actions-2088FF?logo=github-actions)
+
+## 🚀 Kubernetes Verified Deployment
+
+This application is fully tested and ready for Kubernetes deployment.
+
+### ✅ Tested & Verified
+- **Containerization**: Docker images built and optimized
+- **Kubernetes Manifests**: Production-ready YAML configurations
+- **CI/CD Pipeline**: Automated testing with GitHub Actions
+- **Health Monitoring**: Readiness and liveness probes
+- **Service Networking**: Proper service discovery
+
+### 🚀 Quick Deployment
+```bash
+# Deploy to any Kubernetes cluster
+kubectl apply -f k8s/
